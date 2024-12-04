@@ -5,7 +5,11 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public float turnSpeed = 20f;
-    
+    public float sprintSpeed = 2f;
+    public float stamina = 300f;
+
+    public GameObject sprintingSprite;
+    public GameObject walkingSprite;
     Animator m_Animator;
     Rigidbody m_Rigidbody;
     AudioSource m_AudioSource;
@@ -25,24 +29,59 @@ public class PlayerMovement : MonoBehaviour
     {
         float horizontal = Input.GetAxis ("Horizontal");
         float vertical = Input.GetAxis ("Vertical");
+        float sprintHorizontal = horizontal * sprintSpeed;
 
-        m_Movement.Set(horizontal, 0f, vertical);
-        m_Movement.Normalize();
-
+        bool isSprinting = Input.GetKey(KeyCode.LeftShift);
         bool hasHorizontalInput = !Mathf.Approximately (horizontal, 0f);
         bool hasVerticalInput = !Mathf.Approximately (vertical, 0f);
         bool isWalking = hasHorizontalInput || hasVerticalInput;
         m_Animator.SetBool("IsWalking", isWalking);
 
-        if(isWalking)
+        m_Movement.Set(horizontal, 0f, vertical);
+        m_Movement.Normalize();
+
+        if (isWalking && isSprinting && (stamina > 0))
         {
-            if(!m_AudioSource.isPlaying)
+            m_Rigidbody.MovePosition(m_Rigidbody.position + m_Movement * sprintSpeed * m_Animator.deltaPosition.magnitude);
+            stamina--;
+
+            walkingSprite.SetActive(false);
+            sprintingSprite.SetActive(true);
+
+            Debug.Log(stamina);
+
+            if (!m_AudioSource.isPlaying)
             {
                 m_AudioSource.Play();
             }
         }
-        else
+        else if (isWalking)
         {
+            sprintingSprite.SetActive(false);
+            walkingSprite.SetActive(true);
+
+            m_Rigidbody.MovePosition(m_Rigidbody.position + m_Movement * m_Animator.deltaPosition.magnitude);
+            if (stamina < 300)
+            {
+                stamina += 0.5f;
+            }
+
+
+            if (!m_AudioSource.isPlaying)
+            {
+                m_AudioSource.Play();
+            }
+        }
+        else 
+        {
+            sprintingSprite.SetActive(false);
+            walkingSprite.SetActive(true);
+
+            if (stamina < 300) 
+            {
+                stamina++;
+            }
+            
             m_AudioSource.Stop();
         }
 
@@ -52,7 +91,6 @@ public class PlayerMovement : MonoBehaviour
 
     void OnAnimatorMove()
     {
-        m_Rigidbody.MovePosition (m_Rigidbody.position + m_Movement * m_Animator.deltaPosition.magnitude);
         m_Rigidbody.MoveRotation (m_Rotation);
     }
 }
